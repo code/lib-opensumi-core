@@ -1,4 +1,5 @@
 import classnames from 'classnames';
+import debounce from 'lodash/debounce';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Injectable, Autowired } from '@opensumi/di';
@@ -41,6 +42,7 @@ interface IPreferenceItemProps {
   currentValue: any;
   defaultValue: any;
   schema: PreferenceItem;
+  labels: Record<string, string>;
   scope: PreferenceScope;
   effectingScope: PreferenceScope;
   hasValueInScope: boolean;
@@ -85,6 +87,7 @@ export const NextPreferenceItem = ({
     preferenceProvider.get<boolean | string | string[]>(preferenceId),
   );
   const [schema, setSchema] = useState<PreferenceItem>();
+  const [labels, setLabels] = useState(() => settingsService.getEnumLabels(preferenceId));
 
   // 当这个设置项被外部变更时，更新局部值
   useEffect(() => {
@@ -106,10 +109,12 @@ export const NextPreferenceItem = ({
     );
 
     disposableCollection.push(
-      settingsService.onDidEnumLabelsChange(() => {
-        const schemas = schemaProvider.getPreferenceProperty(preferenceId);
-        setSchema(schemas);
-      }),
+      settingsService.onDidEnumLabelsChange(preferenceId)(
+        debounce(() => {
+          setSchema(schemaProvider.getPreferenceProperty(preferenceId));
+          setLabels(settingsService.getEnumLabels(preferenceId));
+        }, PreferenceSettingsService.DEFAULT_CHANGE_DELAY),
+      ),
     );
 
     return () => {

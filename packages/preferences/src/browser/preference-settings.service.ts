@@ -11,6 +11,7 @@ import {
   PreferenceProviderProvider,
   Emitter,
   Event,
+  Dispatcher,
   CommandService,
   isString,
   getIcon,
@@ -53,7 +54,7 @@ class Versionizer<K> {
 
 @Injectable()
 export class PreferenceSettingsService extends Disposable implements IPreferenceSettingsService {
-  private static DEFAULT_CHANGE_DELAY = 500;
+  static DEFAULT_CHANGE_DELAY = 200;
 
   @Autowired(PreferenceService)
   protected readonly preferenceService: PreferenceService;
@@ -109,10 +110,7 @@ export class PreferenceSettingsService extends Disposable implements IPreference
 
   private _listHandler: IVirtualListHandle;
   private _treeHandler: IBasicRecycleTreeHandle;
-  private onDidEnumLabelsChangeEmitter: Emitter<void> = this.registerDispose(new Emitter());
-  private enumLabelsChangeDelayer = this.registerDispose(
-    new ThrottledDelayer<void>(PreferenceSettingsService.DEFAULT_CHANGE_DELAY),
-  );
+  private onDidEnumLabelsChangeDispatcher: Dispatcher<void> = this.registerDispose(new Dispatcher());
 
   constructor() {
     super();
@@ -168,8 +166,8 @@ export class PreferenceSettingsService extends Disposable implements IPreference
     this.tabIndex = index;
   }
 
-  get onDidEnumLabelsChange() {
-    return this.onDidEnumLabelsChangeEmitter.event;
+  onDidEnumLabelsChange(id: string) {
+    return this.onDidEnumLabelsChangeDispatcher.on(id);
   }
 
   private isContainSearchValue(value: string, search: string) {
@@ -442,12 +440,7 @@ export class PreferenceSettingsService extends Disposable implements IPreference
    * @param labels 枚举项
    */
   setEnumLabels(preferenceName: string, labels: { [key: string]: string }) {
-    if (this.enumLabelsChangeDelayer && !this.enumLabelsChangeDelayer.isTriggered()) {
-      this.enumLabelsChangeDelayer.cancel();
-    }
-    this.enumLabelsChangeDelayer.trigger(async () => {
-      this.onDidEnumLabelsChangeEmitter.fire();
-    });
+    this.onDidEnumLabelsChangeDispatcher.dispatch(preferenceName);
     this.enumLabels.set(preferenceName, labels);
   }
 
