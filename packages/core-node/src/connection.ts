@@ -1,7 +1,6 @@
 import http from 'http';
 import net from 'net';
 
-
 import { Injector, InstanceCreator, ClassCreator, FactoryCreator } from '@opensumi/di';
 import { WSChannel, initRPCService, RPCServiceCenter } from '@opensumi/ide-connection';
 import { createWebSocketConnection } from '@opensumi/ide-connection/lib/common/message';
@@ -78,10 +77,13 @@ export function createNetServerConnection(server: net.Server, injector, modulesI
     const serverConnection = createSocketConnection(connection);
     serviceCenter.setConnection(serverConnection);
 
-    connection.on('close', () => {
+    connection.once('close', () => {
       serviceCenter.removeConnection(serverConnection);
-      serviceChildInjector.disposeAll();
     });
+  });
+
+  server.once('close', () => {
+    serviceChildInjector.disposeAll();
   });
 
   return serviceCenter;

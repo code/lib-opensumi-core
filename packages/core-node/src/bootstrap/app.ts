@@ -166,7 +166,7 @@ export class ServerApp implements IServerApp {
           this.opts,
         );
       } else if (server instanceof net.Server) {
-        serviceCenter = createNetServerConnection(server, this.injector, this.modulesInstances);
+        void createNetServerConnection(server, this.injector, this.modulesInstances);
       }
     }
 
